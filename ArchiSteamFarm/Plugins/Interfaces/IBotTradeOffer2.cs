@@ -21,17 +21,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-namespace ArchiSteamFarm.OfficialPlugins.Monitoring;
+using System.Threading.Tasks;
+using ArchiSteamFarm.Steam;
+using ArchiSteamFarm.Steam.Data;
+using ArchiSteamFarm.Steam.Exchange;
+using JetBrains.Annotations;
 
-internal static class TagNames {
-	internal const string BotName = "bot";
-	internal const string BotState = "state";
-	internal const string CurrencyCode = "currency";
-	internal const string Framework = "framework";
-	internal const string OS = "operating_system";
-	internal const string Runtime = "runtime";
-	internal const string SteamID = "steamid";
-	internal const string TradeOfferResult = "result";
-	internal const string Variant = "variant";
-	internal const string Version = "version";
+namespace ArchiSteamFarm.Plugins.Interfaces;
+
+/// <inheritdoc />
+/// <summary>
+///     Implementing this interface allows your plugin to implement custom logic for accepting trades that ASF isn't willing to handle itself.
+/// </summary>
+[PublicAPI]
+public interface IBotTradeOffer2 : IPlugin {
+	/// <summary>
+	///     ASF will call this method for unhandled (e.g. blacklisted, ignored and rejected) trade offers received by the bot.
+	/// </summary>
+	/// <param name="bot">Bot object related to this callback.</param>
+	/// <param name="tradeOffer">Trade offer related to this callback.</param>
+	/// <param name="asfResult">ASF result in regards to parsing this trade offer, can be useful for determining why it wasn't accepted as part of the core logic.</param>
+	/// <returns>True if the trade offer should be accepted as part of this plugin, false otherwise.</returns>
+	Task<bool> OnBotTradeOffer(Bot bot, TradeOffer tradeOffer, ParseTradeResult.EResult asfResult);
 }

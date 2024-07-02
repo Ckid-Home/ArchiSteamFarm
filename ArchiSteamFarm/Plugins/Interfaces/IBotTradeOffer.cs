@@ -21,6 +21,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+using System;
 using System.Threading.Tasks;
 using ArchiSteamFarm.Steam;
 using ArchiSteamFarm.Steam.Data;
@@ -33,6 +34,7 @@ namespace ArchiSteamFarm.Plugins.Interfaces;
 ///     Implementing this interface allows your plugin to implement custom logic for accepting trades that ASF isn't willing to handle itself.
 /// </summary>
 [PublicAPI]
+[Obsolete($"Use {nameof(IBotTradeOffer2)} interface instead, this one will be removed in the next version")]
 public interface IBotTradeOffer : IPlugin {
 	/// <summary>
 	///     ASF will call this method for unhandled (ignored and rejected) trade offers received by the bot.

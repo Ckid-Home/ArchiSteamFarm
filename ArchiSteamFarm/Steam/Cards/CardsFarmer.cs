@@ -58,7 +58,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 	private const byte HoursToIgnore = 1; // How many hours we ignore unreleased appIDs and don't bother checking them again
 
 	[PublicAPI]
-	public static readonly FrozenSet<uint> SalesBlacklist = new HashSet<uint>(20) { 267420, 303700, 335590, 368020, 425280, 480730, 566020, 639900, 762800, 876740, 991980, 1195670, 1343890, 1465680, 1658760, 1797760, 2021850, 2243720, 2459330, 2640280 }.ToFrozenSet();
+	public static readonly FrozenSet<uint> SalesBlacklist = new HashSet<uint>(21) { 267420, 303700, 335590, 368020, 425280, 480730, 566020, 639900, 762800, 876740, 991980, 1195670, 1343890, 1465680, 1658760, 1797760, 2021850, 2243720, 2459330, 2640280, 2861690 }.ToFrozenSet();
 
 	private static readonly ConcurrentDictionary<uint, DateTime> GloballyIgnoredAppIDs = new(); // Reserved for unreleased games
 
@@ -352,7 +352,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 			}
 
 			// This is the last moment for final check if we can farm
-			if (!Bot.IsPlayingPossible) {
+			if (Paused || !Bot.IsPlayingPossible) {
 				Bot.ArchiLogger.LogGenericInfo(Strings.PlayingNotAvailable);
 
 				return;
@@ -372,7 +372,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 						return;
 					}
 
-					if (!Bot.IsPlayingPossible) {
+					if (Paused || !Bot.IsPlayingPossible) {
 						Bot.ArchiLogger.LogGenericInfo(Strings.PlayingNotAvailable);
 
 						return;
@@ -920,7 +920,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 		return keepFarming;
 	}
 
-	private async Task<bool> FarmHours(IReadOnlyCollection<Game> games) {
+	private async Task<bool> FarmHours(HashSet<Game> games) {
 		if ((games == null) || (games.Count == 0)) {
 			throw new ArgumentNullException(nameof(games));
 		}
@@ -979,7 +979,7 @@ public sealed class CardsFarmer : IAsyncDisposable, IDisposable {
 		return keepFarming;
 	}
 
-	private async Task<bool> FarmMultiple(IReadOnlyCollection<Game> games) {
+	private async Task<bool> FarmMultiple(HashSet<Game> games) {
 		if ((games == null) || (games.Count == 0)) {
 			throw new ArgumentNullException(nameof(games));
 		}
