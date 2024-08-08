@@ -5,8 +5,9 @@
 		<PackageVersion Include="Humanizer" Version="3.0.0-beta.54" />
 		<PackageVersion Include="JetBrains.Annotations" Version="2024.2.0" />
 		<PackageVersion Include="Markdig.Signed" Version="0.37.0" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.11.0-beta1.24318.1" />
 		<PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.0.1" />
-		<PackageVersion Include="MSTest" Version="3.5.0" />
+		<PackageVersion Include="MSTest" Version="3.5.1" />
 		<PackageVersion Include="Nito.AsyncEx.Coordination" Version="5.1.2" />
 		<PackageVersion Include="NLog.Web.AspNetCore" Version="5.3.11" />
 		<PackageVersion Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.9.0-beta.2" />
@@ -14,7 +15,7 @@
 		<PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
 		<PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
-		<PackageVersion Include="SteamKit2" Version="3.0.0-Alpha.2" />
+		<PackageVersion Include="SteamKit2" Version="3.0.0-Beta.1" />
 		<PackageVersion Include="Swashbuckle.AspNetCore" Version="6.7.0" />
 		<PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="6.7.0" />
 		<PackageVersion Include="System.Composition" Version="8.0.0" />

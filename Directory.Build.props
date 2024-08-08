@@ -1,6 +1,6 @@
 <Project>
 	<PropertyGroup>
-		<Version>6.0.6.0</Version>
+		<Version>6.0.6.3</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -31,11 +31,6 @@
 		<RuntimeIdentifiers>linux-arm;linux-arm64;linux-x64;osx-arm64;osx-x64;win-arm64;win-x64</RuntimeIdentifiers>
 		<TargetFramework>net8.0</TargetFramework>
 		<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
-	</PropertyGroup>
-
-	<!-- TODO: https://github.com/dotnet/roslyn-analyzers/issues/7032 -->
-	<PropertyGroup>
-		<NoWarn>$(NoWarn),CA1863</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(ASFVariant)' != ''">
