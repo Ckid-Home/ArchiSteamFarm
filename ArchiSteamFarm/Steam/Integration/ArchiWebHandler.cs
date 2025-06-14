@@ -91,7 +91,7 @@ public sealed class ArchiWebHandler : IDisposable {
 		ArgumentNullException.ThrowIfNull(bot);
 
 		Bot = bot;
-		WebBrowser = new WebBrowser(bot.ArchiLogger, ASF.GlobalConfig?.WebProxy);
+		WebBrowser = new WebBrowser(bot.ArchiLogger, bot.BotConfig.WebProxy ?? ASF.GlobalConfig?.WebProxy);
 	}
 
 	public void Dispose() {
@@ -1618,8 +1618,6 @@ public sealed class ArchiWebHandler : IDisposable {
 		return await UrlPostWithSession(request).ConfigureAwait(false);
 	}
 
-	internal HttpClient GenerateDisposableHttpClient() => WebBrowser.GenerateDisposableHttpClient();
-
 	internal async Task<HashSet<uint>?> GetAppList() {
 		const string endpoint = "GetAppList";
 		HttpMethod method = HttpMethod.Get;
@@ -2180,6 +2178,21 @@ public sealed class ArchiWebHandler : IDisposable {
 		return (EResult.OK, EPurchaseResultDetail.NoDetail, response.Content.BalanceText);
 	}
 
+	internal async Task<EResult> RemoveLicense(uint subID) {
+		ArgumentOutOfRangeException.ThrowIfZero(subID);
+
+		Uri request = new(SteamStoreURL, "/account/removelicense");
+
+		// Extra entry for sessionID
+		Dictionary<string, string> data = new(2, StringComparer.Ordinal) {
+			{ "packageid", subID.ToString(CultureInfo.InvariantCulture) }
+		};
+
+		ObjectResponse<ResultResponse>? response = await UrlPostToJsonObjectWithSession<ResultResponse>(request, data: data).ConfigureAwait(false);
+
+		return response?.Content?.Result ?? EResult.Timeout;
+	}
+
 	internal async Task<bool> UnpackBooster(uint appID, ulong itemID) {
 		ArgumentOutOfRangeException.ThrowIfZero(appID);
 		ArgumentOutOfRangeException.ThrowIfZero(itemID);
@@ -2338,12 +2351,15 @@ public sealed class ArchiWebHandler : IDisposable {
 		}
 	}
 
-	private async ValueTask<bool> UnlockParentalAccount(string parentalCode) {
+	private async Task<bool> UnlockParentalAccount(string parentalCode) {
 		ArgumentException.ThrowIfNullOrEmpty(parentalCode);
 
 		Bot.ArchiLogger.LogGenericInfo(Strings.UnlockingParentalAccount);
 
-		bool[] results = await Task.WhenAll(UnlockParentalAccountForService(SteamCommunityURL, parentalCode), UnlockParentalAccountForService(SteamStoreURL, parentalCode)).ConfigureAwait(false);
+		bool[] results = await Task.WhenAll(
+			UnlockParentalAccountForService(SteamCommunityURL, parentalCode),
+			UnlockParentalAccountForService(SteamStoreURL, parentalCode)
+		).ConfigureAwait(false);
 
 		if (results.Any(static result => !result)) {
 			Bot.ArchiLogger.LogGenericWarning(Strings.WarningFailed);
