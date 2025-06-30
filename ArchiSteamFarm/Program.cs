@@ -216,7 +216,7 @@ internal static class Program {
 
 		// Allow loading configs from source tree if it's a debug build
 		if (Debugging.IsDebugBuild) {
-			// Common structure is bin/(x64/)Debug/ArchiSteamFarm.exe, so we allow up to 4 directories up
+			// Common structure is bin/Debug/netX.Y/ArchiSteamFarm.dll, so we allow up to 4 directories up
 			for (byte i = 0; i < 4; i++) {
 				Directory.SetCurrentDirectory("..");
 
@@ -398,6 +398,8 @@ internal static class Program {
 			ASF.ArchiLogger.LogGenericWarning(Strings.WarningPrivacyPolicy);
 			await Task.Delay(SharedInfo.ShortInformationDelay).ConfigureAwait(false);
 		}
+
+		ASF.ArchiLogger.LogGenericInfo(Strings.FormatInitializing(nameof(GlobalDatabase)));
 
 		GlobalDatabase? globalDatabase = await GlobalDatabase.CreateOrLoad(globalDatabaseFile).ConfigureAwait(false);
 
