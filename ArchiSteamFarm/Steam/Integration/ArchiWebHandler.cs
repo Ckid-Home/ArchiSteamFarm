@@ -51,8 +51,8 @@ using SteamKit2;
 namespace ArchiSteamFarm.Steam.Integration;
 
 public sealed class ArchiWebHandler : IDisposable {
-	// Steam network (ArchiHandler) works unstable with more items than this (throwing upon description details), while Steam web (ArchiWebHandler) silently limits to this value maximum
-	internal const ushort MaxItemsInSingleInventoryRequest = 2500;
+	// Steam network (ArchiHandler) may work unstable with more items than this (throwing upon description details), while Steam web (ArchiWebHandler) forcefully limits to this value maximum
+	internal const ushort MaxItemsInSingleInventoryRequest = 2000;
 
 	private const string EconService = "IEconService";
 	private const byte MaxTradeOfferMessageLength = 128;
@@ -91,7 +91,7 @@ public sealed class ArchiWebHandler : IDisposable {
 		ArgumentNullException.ThrowIfNull(bot);
 
 		Bot = bot;
-		WebBrowser = new WebBrowser(bot.ArchiLogger, ASF.GlobalConfig?.WebProxy);
+		WebBrowser = new WebBrowser(bot.ArchiLogger, bot.BotConfig.WebProxy ?? ASF.GlobalConfig?.WebProxy);
 	}
 
 	public void Dispose() {
@@ -1618,8 +1618,6 @@ public sealed class ArchiWebHandler : IDisposable {
 		return await UrlPostWithSession(request).ConfigureAwait(false);
 	}
 
-	internal HttpClient GenerateDisposableHttpClient() => WebBrowser.GenerateDisposableHttpClient();
-
 	internal async Task<HashSet<uint>?> GetAppList() {
 		const string endpoint = "GetAppList";
 		HttpMethod method = HttpMethod.Get;
@@ -2078,11 +2076,13 @@ public sealed class ArchiWebHandler : IDisposable {
 		WebBrowser.CookieContainer.Add(new Cookie("sessionid", sessionID, "/", $".{SteamCommunityURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("sessionid", sessionID, "/", $".{SteamHelpURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("sessionid", sessionID, "/", $".{SteamStoreURL.Host}"));
+		WebBrowser.CookieContainer.Add(new Cookie("sessionid", sessionID, "/", $".{WebAPI.DefaultBaseAddress.Host}"));
 
 		WebBrowser.CookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", $".{SteamCheckoutURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", $".{SteamCommunityURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", $".{SteamHelpURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", $".{SteamStoreURL.Host}"));
+		WebBrowser.CookieContainer.Add(new Cookie("steamLoginSecure", steamLoginSecure, "/", $".{WebAPI.DefaultBaseAddress.Host}"));
 
 		// Report proper time when doing timezone-based calculations, see setTimezoneCookies() from https://steamcommunity-a.akamaihd.net/public/shared/javascript/shared_global.js
 		string timeZoneOffset = $"{(int) DateTimeOffset.Now.Offset.TotalSeconds}{Uri.EscapeDataString(",")}0";
@@ -2091,6 +2091,7 @@ public sealed class ArchiWebHandler : IDisposable {
 		WebBrowser.CookieContainer.Add(new Cookie("timezoneOffset", timeZoneOffset, "/", $".{SteamCommunityURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("timezoneOffset", timeZoneOffset, "/", $".{SteamHelpURL.Host}"));
 		WebBrowser.CookieContainer.Add(new Cookie("timezoneOffset", timeZoneOffset, "/", $".{SteamStoreURL.Host}"));
+		WebBrowser.CookieContainer.Add(new Cookie("timezoneOffset", timeZoneOffset, "/", $".{WebAPI.DefaultBaseAddress.Host}"));
 
 		Bot.ArchiLogger.LogGenericInfo(Strings.Success);
 
@@ -2178,6 +2179,21 @@ public sealed class ArchiWebHandler : IDisposable {
 		}
 
 		return (EResult.OK, EPurchaseResultDetail.NoDetail, response.Content.BalanceText);
+	}
+
+	internal async Task<EResult> RemoveLicense(uint subID) {
+		ArgumentOutOfRangeException.ThrowIfZero(subID);
+
+		Uri request = new(SteamStoreURL, "/account/removelicense");
+
+		// Extra entry for sessionID
+		Dictionary<string, string> data = new(2, StringComparer.Ordinal) {
+			{ "packageid", subID.ToString(CultureInfo.InvariantCulture) }
+		};
+
+		ObjectResponse<ResultResponse>? response = await UrlPostToJsonObjectWithSession<ResultResponse>(request, data: data).ConfigureAwait(false);
+
+		return response?.Content?.Result ?? EResult.Timeout;
 	}
 
 	internal async Task<bool> UnpackBooster(uint appID, ulong itemID) {
@@ -2338,12 +2354,15 @@ public sealed class ArchiWebHandler : IDisposable {
 		}
 	}
 
-	private async ValueTask<bool> UnlockParentalAccount(string parentalCode) {
+	private async Task<bool> UnlockParentalAccount(string parentalCode) {
 		ArgumentException.ThrowIfNullOrEmpty(parentalCode);
 
 		Bot.ArchiLogger.LogGenericInfo(Strings.UnlockingParentalAccount);
 
-		bool[] results = await Task.WhenAll(UnlockParentalAccountForService(SteamCommunityURL, parentalCode), UnlockParentalAccountForService(SteamStoreURL, parentalCode)).ConfigureAwait(false);
+		bool[] results = await Task.WhenAll(
+			UnlockParentalAccountForService(SteamCommunityURL, parentalCode),
+			UnlockParentalAccountForService(SteamStoreURL, parentalCode)
+		).ConfigureAwait(false);
 
 		if (results.Any(static result => !result)) {
 			Bot.ArchiLogger.LogGenericWarning(Strings.WarningFailed);
