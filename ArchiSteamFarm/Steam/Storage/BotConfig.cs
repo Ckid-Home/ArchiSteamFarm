@@ -29,6 +29,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -116,6 +117,15 @@ public sealed class BotConfig {
 	[PublicAPI]
 	public const EUIMode DefaultUserInterfaceMode = EUIMode.VGUI;
 
+	[PublicAPI]
+	public const string? DefaultWebProxyPassword = null;
+
+	[PublicAPI]
+	public const string? DefaultWebProxyText = null;
+
+	[PublicAPI]
+	public const string? DefaultWebProxyUsername = null;
+
 	internal const byte SteamParentalCodeLength = 4;
 	internal const byte SteamTradeTokenLength = 8;
 
@@ -140,73 +150,118 @@ public sealed class BotConfig {
 	[PublicAPI]
 	public static readonly ImmutableHashSet<EAssetType> DefaultTransferableTypes = [EAssetType.BoosterPack, EAssetType.FoilTradingCard, EAssetType.TradingCard];
 
-	[JsonInclude]
-	public bool AcceptGifts { get; private init; } = DefaultAcceptGifts;
+	[JsonIgnore]
+	[PublicAPI]
+	public WebProxy? WebProxy {
+		get {
+			if (field != null) {
+				return field;
+			}
+
+			if (string.IsNullOrEmpty(WebProxyText)) {
+				return null;
+			}
+
+			Uri uri;
+
+			try {
+				uri = new Uri(WebProxyText);
+			} catch (UriFormatException e) {
+				ASF.ArchiLogger.LogGenericException(e);
+
+				return null;
+			}
+
+			WebProxy proxy = new() {
+				Address = uri,
+				BypassProxyOnLocal = true
+			};
+
+			if (!string.IsNullOrEmpty(WebProxyUsername) || !string.IsNullOrEmpty(WebProxyPassword)) {
+				NetworkCredential credentials = new();
+
+				if (!string.IsNullOrEmpty(WebProxyUsername)) {
+					credentials.UserName = WebProxyUsername;
+				}
+
+				if (!string.IsNullOrEmpty(WebProxyPassword)) {
+					credentials.Password = WebProxyPassword;
+				}
+
+				proxy.Credentials = credentials;
+			}
+
+			return field = proxy;
+		}
+	}
 
 	[JsonInclude]
-	public EBotBehaviour BotBehaviour { get; private init; } = DefaultBotBehaviour;
+	public bool AcceptGifts { get; init; } = DefaultAcceptGifts;
+
+	[JsonInclude]
+	public EBotBehaviour BotBehaviour { get; init; } = DefaultBotBehaviour;
 
 	[JsonDisallowNull]
 	[JsonInclude]
 	[SwaggerValidValues(ValidIntValues = [(int) EAssetType.FoilTradingCard, (int) EAssetType.TradingCard])]
-	public ImmutableHashSet<EAssetType> CompleteTypesToSend { get; private init; } = DefaultCompleteTypesToSend;
+	public ImmutableHashSet<EAssetType> CompleteTypesToSend { get; init; } = DefaultCompleteTypesToSend;
 
 	[JsonInclude]
-	public string? CustomGamePlayedWhileFarming { get; private init; } = DefaultCustomGamePlayedWhileFarming;
+	public string? CustomGamePlayedWhileFarming { get; init; } = DefaultCustomGamePlayedWhileFarming;
 
 	[JsonInclude]
-	public string? CustomGamePlayedWhileIdle { get; private init; } = DefaultCustomGamePlayedWhileIdle;
+	public string? CustomGamePlayedWhileIdle { get; init; } = DefaultCustomGamePlayedWhileIdle;
 
 	[JsonInclude]
-	public bool Enabled { get; private init; } = DefaultEnabled;
+	public bool Enabled { get; init; } = DefaultEnabled;
 
 	[JsonDisallowNull]
 	[JsonInclude]
-	public ImmutableList<EFarmingOrder> FarmingOrders { get; private init; } = DefaultFarmingOrders;
+	public ImmutableList<EFarmingOrder> FarmingOrders { get; init; } = DefaultFarmingOrders;
 
 	[JsonInclude]
-	public EFarmingPreferences FarmingPreferences { get; private init; } = DefaultFarmingPreferences;
+	public EFarmingPreferences FarmingPreferences { get; init; } = DefaultFarmingPreferences;
 
 	[JsonDisallowNull]
 	[JsonInclude]
 	[MaxLength(ArchiHandler.MaxGamesPlayedConcurrently)]
 	[SwaggerItemsMinMax(MinimumUint = 1, MaximumUint = uint.MaxValue)]
 	[UnconditionalSuppressMessage("AssemblyLoadTrimming", "IL2026:RequiresUnreferencedCode", Justification = "This is optional, supportive attribute, we don't care if it gets trimmed or not")]
-	public ImmutableList<uint> GamesPlayedWhileIdle { get; private init; } = DefaultGamesPlayedWhileIdle;
+	public ImmutableList<uint> GamesPlayedWhileIdle { get; init; } = DefaultGamesPlayedWhileIdle;
 
 	[JsonInclude]
 	[Range(byte.MinValue, byte.MaxValue)]
-	public byte HoursUntilCardDrops { get; private init; } = DefaultHoursUntilCardDrops;
+	public byte HoursUntilCardDrops { get; init; } = DefaultHoursUntilCardDrops;
 
 	[JsonDisallowNull]
 	[JsonInclude]
-	public ImmutableHashSet<EAssetType> LootableTypes { get; private init; } = DefaultLootableTypes;
+	public ImmutableHashSet<EAssetType> LootableTypes { get; init; } = DefaultLootableTypes;
 
 	[JsonDisallowNull]
 	[JsonInclude]
-	public ImmutableHashSet<EAssetType> MatchableTypes { get; private init; } = DefaultMatchableTypes;
+	public ImmutableHashSet<EAssetType> MatchableTypes { get; init; } = DefaultMatchableTypes;
 
 	[JsonInclude]
-	public EPersonaStateFlag OnlineFlags { get; private init; } = DefaultOnlineFlags;
+	public EPersonaStateFlag OnlineFlags { get; init; } = DefaultOnlineFlags;
 
 	[JsonInclude]
-	public EOnlinePreferences OnlinePreferences { get; private init; } = DefaultOnlinePreferences;
+	public EOnlinePreferences OnlinePreferences { get; init; } = DefaultOnlinePreferences;
 
 	[JsonInclude]
-	public EPersonaState OnlineStatus { get; private init; } = DefaultOnlineStatus;
+	public EPersonaState OnlineStatus { get; init; } = DefaultOnlineStatus;
 
 	[JsonInclude]
 	public ArchiCryptoHelper.ECryptoMethod PasswordFormat { get; internal set; } = DefaultPasswordFormat;
 
 	[JsonInclude]
-	public ERedeemingPreferences RedeemingPreferences { get; private init; } = DefaultRedeemingPreferences;
+	public ERedeemingPreferences RedeemingPreferences { get; init; } = DefaultRedeemingPreferences;
 
 	[JsonInclude]
-	public ERemoteCommunication RemoteCommunication { get; private init; } = DefaultRemoteCommunication;
+	public ERemoteCommunication RemoteCommunication { get; init; } = DefaultRemoteCommunication;
 
 	[JsonInclude]
 	[Range(byte.MinValue, byte.MaxValue)]
-	public byte SendTradePeriod { get; private init; } = DefaultSendTradePeriod;
+	public byte SendTradePeriod { get; init; } = DefaultSendTradePeriod;
 
 	[JsonInclude]
 	public string? SteamLogin {
@@ -221,7 +276,7 @@ public sealed class BotConfig {
 	[JsonInclude]
 	[SwaggerSteamIdentifier(AccountType = EAccountType.Clan)]
 	[SwaggerValidValues(ValidIntValues = [0])]
-	public ulong SteamMasterClanID { get; private init; } = DefaultSteamMasterClanID;
+	public ulong SteamMasterClanID { get; init; } = DefaultSteamMasterClanID;
 
 	[JsonInclude]
 	[MaxLength(SteamParentalCodeLength)]
@@ -252,28 +307,35 @@ public sealed class BotConfig {
 	[MaxLength(SteamTradeTokenLength)]
 	[MinLength(SteamTradeTokenLength)]
 	[UnconditionalSuppressMessage("AssemblyLoadTrimming", "IL2026:RequiresUnreferencedCode", Justification = "This is optional, supportive attribute, we don't care if it gets trimmed or not")]
-	public string? SteamTradeToken { get; private init; } = DefaultSteamTradeToken;
+	public string? SteamTradeToken { get; init; } = DefaultSteamTradeToken;
 
 	[JsonDisallowNull]
 	[JsonInclude]
-	public ImmutableDictionary<ulong, EAccess> SteamUserPermissions { get; private init; } = DefaultSteamUserPermissions;
+	public ImmutableDictionary<ulong, EAccess> SteamUserPermissions { get; init; } = DefaultSteamUserPermissions;
 
 	[JsonInclude]
 	[Range(byte.MinValue, byte.MaxValue)]
-	public byte TradeCheckPeriod { get; private init; } = DefaultTradeCheckPeriod;
+	public byte TradeCheckPeriod { get; init; } = DefaultTradeCheckPeriod;
 
 	[JsonInclude]
-	public ETradingPreferences TradingPreferences { get; private init; } = DefaultTradingPreferences;
+	public ETradingPreferences TradingPreferences { get; init; } = DefaultTradingPreferences;
 
 	[JsonDisallowNull]
 	[JsonInclude]
-	public ImmutableHashSet<EAssetType> TransferableTypes { get; private init; } = DefaultTransferableTypes;
+	public ImmutableHashSet<EAssetType> TransferableTypes { get; init; } = DefaultTransferableTypes;
 
 	[JsonInclude]
-	public bool UseLoginKeys { get; private init; } = DefaultUseLoginKeys;
+	public bool UseLoginKeys { get; init; } = DefaultUseLoginKeys;
 
 	[JsonInclude]
-	public EUIMode UserInterfaceMode { get; private init; } = DefaultUserInterfaceMode;
+	public EUIMode UserInterfaceMode { get; init; } = DefaultUserInterfaceMode;
+
+	[JsonInclude]
+	[JsonPropertyName(nameof(WebProxy))]
+	public string? WebProxyText { get; init; } = DefaultWebProxyText;
+
+	[JsonInclude]
+	public string? WebProxyUsername { get; init; } = DefaultWebProxyUsername;
 
 	[JsonExtensionData]
 	[JsonInclude]
@@ -282,7 +344,20 @@ public sealed class BotConfig {
 	internal bool IsSteamLoginSet { get; set; }
 	internal bool IsSteamParentalCodeSet { get; set; }
 	internal bool IsSteamPasswordSet { get; set; }
+	internal bool IsWebProxyPasswordSet { get; private set; }
+
 	internal bool Saving { get; set; }
+
+	[JsonInclude]
+	[SwaggerSecurityCritical]
+	internal string? WebProxyPassword {
+		get;
+
+		set {
+			IsWebProxyPasswordSet = true;
+			field = value;
+		}
+	} = DefaultWebProxyPassword;
 
 	[JsonDisallowNull]
 	[JsonInclude]
@@ -299,7 +374,7 @@ public sealed class BotConfig {
 	}
 
 	[JsonConstructor]
-	internal BotConfig() { }
+	public BotConfig() { }
 
 	[UsedImplicitly]
 	public bool ShouldSerializeAcceptGifts() => !Saving || (AcceptGifts != DefaultAcceptGifts);
@@ -393,6 +468,15 @@ public sealed class BotConfig {
 
 	[UsedImplicitly]
 	public bool ShouldSerializeUserInterfaceMode() => !Saving || (UserInterfaceMode != DefaultUserInterfaceMode);
+
+	[UsedImplicitly]
+	public bool ShouldSerializeWebProxyPassword() => Saving && IsWebProxyPasswordSet && (WebProxyPassword != DefaultWebProxyPassword);
+
+	[UsedImplicitly]
+	public bool ShouldSerializeWebProxyText() => !Saving || (WebProxyText != DefaultWebProxyText);
+
+	[UsedImplicitly]
+	public bool ShouldSerializeWebProxyUsername() => !Saving || (WebProxyUsername != DefaultWebProxyUsername);
 
 	[PublicAPI]
 	public static async Task<bool> Write(string filePath, BotConfig botConfig) {
